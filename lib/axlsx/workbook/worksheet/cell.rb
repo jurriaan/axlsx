@@ -310,13 +310,25 @@ module Axlsx
     # This is still not perfect...
     #  - scaling is not linear as font sizes increst
     #  - different fonts have different mdw and char widths
-    def autowidth
-      return if is_formula? || value == nil
-      mdw = 1.78 #This is the widest width of 0..9 in arial@10px)
+    def self.string_width(string, font_size)
+      mdw = 1.78 # This is the widest width of 0..9 in arial@10px)
       font_scale = (font_size/10.0).to_f
-      ((value.to_s.count(Worksheet.thin_chars) * mdw + 5) / mdw * 256) / 256.0 * font_scale
+      ((string.to_s.count(Worksheet.thin_chars) * mdw + 5) / mdw * 256) / 256.0 * font_scale
     end
 
+    def autowidth
+      return if is_formula? || value == nil
+      max_width = 0
+      if @styles.cellXfs[@style].alignment.wrap_text # What is the correct way to get the current style?
+        value.to_s.split(/\r?\n/).each do |line|
+          width = Cell.string_width(line, font_size)
+          max_width = width if width > max_width
+        end
+      else
+        max_width = Cell.string_width(value, font_size)
+      end
+      max_width
+    end
     # returns the absolute or relative string style reference for
     # this cell.
     # @param [Boolean] absolute -when false a relative reference will be
